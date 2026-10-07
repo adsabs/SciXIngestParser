@@ -7,10 +7,10 @@ from adsingestschema import ads_schema_validator
 
 from ingestparser.parsers import ieee
 
+TIMESTAMP_FMT = "%Y-%m-%dT%H:%M:%S.%fZ"
+
 
 class TestIEEE(unittest.TestCase):
-    maxDiff = None
-
     def setUp(self):
         stubdata_dir = os.path.join(os.path.dirname(__file__), "stubdata/")
         self.inputdir = os.path.join(stubdata_dir, "input")
@@ -18,8 +18,10 @@ class TestIEEE(unittest.TestCase):
 
     def test_ieee(self):
         filenames = [
-            "ieee_example_1",
-            "ieee_example_2",
+            "ieee_conf1",
+            "ieee_conf2",
+            "ieee_conf3",
+            "ieee_conf4",
         ]
         for f in filenames:
             test_infile = os.path.join(self.inputdir, f + ".xml")
@@ -43,10 +45,12 @@ class TestIEEE(unittest.TestCase):
                 pass
 
             # this field won't match the test data, so check and then discard
-            time_difference = datetime.datetime.fromisoformat(
-                parsed["recordData"]["parsedTime"]
-            ) - datetime.datetime.now(datetime.UTC)
+            time_difference = (
+                datetime.datetime.strptime(parsed["recordData"]["parsedTime"], TIMESTAMP_FMT)
+                - datetime.datetime.utcnow()
+            )
             self.assertTrue(abs(time_difference) < datetime.timedelta(seconds=10))
-
             parsed["recordData"]["parsedTime"] = ""
+
+            self.maxDiff = None
             self.assertEqual(parsed, output_data)
