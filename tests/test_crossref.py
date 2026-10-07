@@ -7,6 +7,8 @@ from adsingestschema import ads_schema_validator
 
 from ingestparser.parsers import crossref
 
+TIMESTAMP_FMT = "%Y-%m-%dT%H:%M:%S.%fZ"
+
 
 class TestCrossref(unittest.TestCase):
     def setUp(self):
@@ -64,9 +66,10 @@ class TestCrossref(unittest.TestCase):
                 self.fail("Schema validation failed")
 
             # this field won't match the test data, so check and then discard
-            time_difference = datetime.datetime.fromisoformat(
-                parsed["recordData"]["parsedTime"]
-            ) - datetime.datetime.now(datetime.UTC)
+            time_difference = (
+                datetime.datetime.strptime(parsed["recordData"]["parsedTime"], TIMESTAMP_FMT)
+                - datetime.datetime.utcnow()
+            )
             self.assertTrue(abs(time_difference) < datetime.timedelta(seconds=10))
             parsed["recordData"]["parsedTime"] = ""
 

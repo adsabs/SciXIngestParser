@@ -7,6 +7,8 @@ from adsingestschema import ads_schema_validator
 
 from ingestparser.parsers import elsevier
 
+TIMESTAMP_FMT = "%Y-%m-%dT%H:%M:%S.%fZ"
+
 
 class TestElsevier(unittest.TestCase):
     def setUp(self):
@@ -39,6 +41,7 @@ class TestElsevier(unittest.TestCase):
             "els_abstract_author_1",
             "els_other_ref",
             "els_tex_title_1",
+            "elsevier_untagged_orcid",
         ]
         for f in filenames:
             test_infile = os.path.join(self.inputdir, f + ".xml")
@@ -62,10 +65,11 @@ class TestElsevier(unittest.TestCase):
                 pass
 
             # this field won't match the test data, so check and then discard
-            time_difference = datetime.datetime.fromisoformat(
-                parsed["recordData"]["parsedTime"]
-            ) - datetime.datetime.now(datetime.UTC)
+            time_difference = (
+                datetime.datetime.strptime(parsed["recordData"]["parsedTime"], TIMESTAMP_FMT)
+                - datetime.datetime.utcnow()
+            )
             self.assertTrue(abs(time_difference) < datetime.timedelta(seconds=10))
-
             parsed["recordData"]["parsedTime"] = ""
+
             self.assertEqual(parsed, output_data)
