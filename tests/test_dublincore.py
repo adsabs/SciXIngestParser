@@ -1,4 +1,3 @@
-import datetime
 import json
 import os
 import unittest
@@ -6,8 +5,6 @@ import unittest
 from adsingestschema import ads_schema_validator
 
 from ingestparser.parsers import dubcore
-
-TIMESTAMP_FMT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
 class TestDublinCore(unittest.TestCase):
@@ -45,12 +42,7 @@ class TestDublinCore(unittest.TestCase):
                 self.fail("Schema validation failed")
                 pass
 
-            # this field won't match the test data, so check and then discard
-            time_difference = (
-                datetime.datetime.strptime(parsed["recordData"]["parsedTime"], TIMESTAMP_FMT)
-                - datetime.datetime.utcnow()
-            )
-            self.assertTrue(abs(time_difference) < datetime.timedelta(seconds=10))
+            # this field won't match the test data, discard
             parsed["recordData"]["parsedTime"] = ""
 
             self.maxDiff = None

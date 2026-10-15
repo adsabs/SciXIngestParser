@@ -1,7 +1,7 @@
+import datetime
 import html
 import re
 import warnings
-from datetime import datetime
 
 import bs4
 from bs4 import MarkupResemblesLocatorWarning
@@ -226,7 +226,7 @@ class IngestBase(object):
 
         output["recordData"] = {
             "createdTime": "",
-            "parsedTime": datetime.utcnow().strftime(self.TIMESTAMP_FMT),
+            "parsedTime": datetime.datetime.now(datetime.UTC).strftime(self.TIMESTAMP_FMT),
             "loadType": "fromURL" if format == "HTML" else "fromFile",
             "loadFormat": format,
             "loadLocation": "",
@@ -270,18 +270,20 @@ class IngestBase(object):
             "publisher": input_dict.get("publisher", ""),
             "issueNum": input_dict.get("issue", ""),
             "volumeNum": input_dict.get("volume", ""),
-            "pubYear": versionOfRecordDate
-            if versionOfRecordDate
-            else (
-                input_dict["pubdate_print"][0:4]
-                if "pubdate_print" in input_dict
+            "pubYear": (
+                versionOfRecordDate
+                if versionOfRecordDate
                 else (
-                    input_dict["pubdate_electronic"][0:4]
-                    if "pubdate_electronic" in input_dict
+                    input_dict["pubdate_print"][0:4]
+                    if "pubdate_print" in input_dict
                     else (
-                        input_dict.get("pubdate_other", {})[0].get("date", "")[0:4]
-                        if "pubdate_other" in input_dict
-                        else ""
+                        input_dict["pubdate_electronic"][0:4]
+                        if "pubdate_electronic" in input_dict
+                        else (
+                            input_dict.get("pubdate_other", {})[0].get("date", "")[0:4]
+                            if "pubdate_other" in input_dict
+                            else ""
+                        )
                     )
                 )
             ),
@@ -475,7 +477,7 @@ class IngestBase(object):
         output["openAccess"] = {
             "open": input_dict.get("openAccess", {}).get("open", False),
             "license": input_dict.get("openAccess", {}).get("license", ""),
-            "licenseURL": input_dict.get("openAccess", {}).get("licenseURL", "")
+            "licenseURL": input_dict.get("openAccess", {}).get("licenseURL", ""),
             # "preprint": "XXX",
             # "startDate": "XXX",
             # "endDate": "XXX",
