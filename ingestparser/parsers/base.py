@@ -503,6 +503,14 @@ class BaseBeautifulSoupParser(IngestBase):
     fix_ampersand_2 = re.compile(r"(&amp;)(.*?)(;)")
     re_ampersands = [fix_ampersand_1, fix_ampersand_2]
 
+    # HTML5 raw-text/RCDATA elements: libxml2>=2.14 (lxml>=6) does not parse child tags
+    # inside these, so they are temporarily renamed before parsing in _detag
+    rawtext_prefix = "ingest-rawtext-"
+    re_rawtext_tags = re.compile(
+        r"<(/?)(title|textarea|style|script|xmp|iframe|noembed|noframes|noscript|plaintext)(?=[\s/>])",
+        re.IGNORECASE,
+    )
+
     HTML_TAGS_MATH = [
         "inline-formula",
         "tex-math",
@@ -588,7 +596,17 @@ class BaseBeautifulSoupParser(IngestBase):
         """
         # note that parser=lxml is recommended here - if the more stringent lxml-xml is used,
         # the output is slightly different and the code will need to be modified
-        newr = self.bsstrtodict(str(r), "lxml")
+        r_str = self.re_rawtext_tags.sub(r"<\1%s\2" % self.rawtext_prefix, str(r))
+        newr = self.bsstrtodict(r_str, "lxml")
+        for e in newr.find_all(re.compile("^" + self.rawtext_prefix)):
+            e.name = e.name[len(self.rawtext_prefix) :]
+
+        # libxml2>=2.14 parses processing instructions (e.g. <?index ...?>) as comments
+        # ("<!--?index ...?-->"); convert them back unless the input had such comments
+        if "<!--?" not in r_str:
+            for c in newr.find_all(string=lambda s: isinstance(s, bs4.Comment)):
+                if c.startswith("?"):
+                    c.replace_with(bs4.ProcessingInstruction(c[1:]))
 
         # list of all tags in the object
         if newr.find_all():

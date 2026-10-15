@@ -250,6 +250,21 @@ class AuthorNames(object):
         :return dict of parsed author name parts
         """
         author = nameparser.HumanName(author_str)
+
+        # nameparser>=2 reads any unlisted leading "Xx." word as a title, which
+        # turns abbreviated given names (e.g. "Th. Henning") into prefixes.
+        # Only keep title words that are in the titles vocabulary; move the
+        # rest back to the given/middle names.
+        if author.title:
+            title_words = author.title.split()
+            known_titles = [t for t in title_words if t in nameparser.config.CONSTANTS.titles]
+            unlisted_titles = [t for t in title_words if t not in known_titles]
+            if unlisted_titles:
+                given_words = unlisted_titles + author.first.split()
+                author.title = " ".join(known_titles)
+                author.first = given_words[0]
+                author.middle = " ".join(given_words[1:] + author.middle.split())
+
         if author.first == "Jr." and author.suffix != "":
             author.first = author.suffix
             author.suffix = "Jr."
