@@ -24,7 +24,7 @@ def flatten_author_groups(soup):
     g2.extend(group_list)
     group_list = []
     for g in g2:
-        if type(g) == list:
+        if type(g) is list:
             group_list.append(g[0])
         else:
             group_list.append(g)

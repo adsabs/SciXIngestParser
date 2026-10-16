@@ -137,11 +137,11 @@ class JATSAffils(object):
                         logger.warning("Bad format in _fix_email: %s" % err)
             else:
                 try:
-                    if type(em) == str:
+                    if type(em) is str:
                         if email_format.search(em):
                             email_new.add(email_format.search(em).group(0))
                             email_parsed = True
-                    elif type(em) == list:
+                    elif type(em) is list:
                         for e in em:
                             if email_format.search(e):
                                 email_new.add(email_format.search(e).group(0))
@@ -514,7 +514,7 @@ class JATSAffils(object):
                         i = self._decompose(soup=i, tag="sup")
                         i, aff_extids_tmp = self._get_inst_identifiers(i)
                         affstr = i.get_text(separator=", ").strip()
-                        (affstr, email_list) = self._fix_affil(affstr)
+                        affstr, email_list = self._fix_affil(affstr)
                         aff_text.append(affstr)
                         aff_extids.extend(aff_extids_tmp)
                         i.decompose()
@@ -528,7 +528,7 @@ class JATSAffils(object):
                         for aff in aff_list:
                             aff, aff_extids_tmp = self._get_inst_identifiers(aff)
                             aff_fix = aff.get_text(separator=", ").strip()
-                            (affstr, email_fix) = self._fix_affil(aff_fix)
+                            affstr, email_fix = self._fix_affil(aff_fix)
                             email_list.extend(email_fix)
                             aff_text.append(affstr)
                             aff_extids.extend(aff_extids_tmp)
@@ -658,7 +658,7 @@ class JATSAffils(object):
                     # a = self._decompose(soup=a, tag='ext-link')
 
                     affstr = aff.get_text(separator=", ").strip()
-                    (affstr, email_list) = self._fix_affil(affstr)
+                    affstr, email_list = self._fix_affil(affstr)
                     if not self.email_xref.get(key, None):
                         if email_list:
                             self.email_xref[key] = email_list
@@ -699,7 +699,7 @@ class JATSAffils(object):
 
             aff, aff_extids_tmp = self._get_inst_identifiers(aff)
             affstr = aff.get_text(separator=", ").strip()
-            (aff_list, email_list) = self._fix_affil(affstr)
+            aff_list, email_list = self._fix_affil(affstr)
             self.xref_dict[key] = aff_list
             if self.xref_xid_dict.get(key, None):
                 self.xref_xid_dict[key].extend(aff_extids_tmp)
@@ -1019,15 +1019,15 @@ class JATSParser(BaseBeautifulSoupParser):
         event_meta = self.article_meta.find("conference")
 
         if event_meta.find("conf-name"):
-            conf_name = self._remove_latex(event_meta.find("conf-name", ""))
+            conf_name = self._remove_latex(event_meta.find("conf-name"))
             self.base_metadata["conf_name"] = self._detag(conf_name, [])
 
         if event_meta.find("conf-loc"):
-            conf_loc = self._remove_latex(event_meta.find("conf-loc", ""))
+            conf_loc = self._remove_latex(event_meta.find("conf-loc"))
             self.base_metadata["conf_location"] = self._detag(conf_loc, [])
 
         if event_meta.find("conf-date"):
-            conf_date = self._remove_latex(event_meta.find("conf-date", ""))
+            conf_date = self._remove_latex(event_meta.find("conf-date"))
             self.base_metadata["conf_date"] = self._detag(conf_date, [])
 
     def _parse_pub(self):

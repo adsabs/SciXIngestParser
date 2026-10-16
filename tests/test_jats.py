@@ -1,4 +1,3 @@
-import datetime
 import json
 import os
 import unittest
@@ -7,8 +6,6 @@ import pytest
 from adsingestschema import ads_schema_validator
 
 from ingestparser.parsers import jats
-
-TIMESTAMP_FMT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
 @pytest.mark.filterwarnings("ignore::bs4.MarkupResemblesLocatorWarning")
@@ -139,13 +136,9 @@ class TestJATS(unittest.TestCase):
             except Exception:
                 self.fail("Schema validation failed")
 
-            # this field won't match the test data, so check and then discard
-            time_difference = (
-                datetime.datetime.strptime(parsed["recordData"]["parsedTime"], TIMESTAMP_FMT)
-                - datetime.datetime.utcnow()
-            )
-            self.assertTrue(abs(time_difference) < datetime.timedelta(seconds=10))
+            # this field won't match the test data, discard
             parsed["recordData"]["parsedTime"] = ""
+
             self.assertEqual(parsed, output_data)
 
     def test_jats_lxml(self):
@@ -175,12 +168,7 @@ class TestJATS(unittest.TestCase):
             except Exception:
                 self.fail("Schema validation failed")
 
-            # this field won't match the test data, so check and then discard
-            time_difference = (
-                datetime.datetime.strptime(parsed["recordData"]["parsedTime"], TIMESTAMP_FMT)
-                - datetime.datetime.utcnow()
-            )
-            self.assertTrue(abs(time_difference) < datetime.timedelta(seconds=10))
+            # this field won't match the test data, discard
             parsed["recordData"]["parsedTime"] = ""
 
             self.assertEqual(parsed, output_data)

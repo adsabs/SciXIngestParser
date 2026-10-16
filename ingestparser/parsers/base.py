@@ -1,7 +1,7 @@
+import datetime
 import html
 import re
 import warnings
-from datetime import datetime
 
 import bs4
 from bs4 import MarkupResemblesLocatorWarning
@@ -226,7 +226,7 @@ class IngestBase(object):
 
         output["recordData"] = {
             "createdTime": "",
-            "parsedTime": datetime.utcnow().strftime(self.TIMESTAMP_FMT),
+            "parsedTime": datetime.datetime.now(datetime.UTC).strftime(self.TIMESTAMP_FMT),
             "loadType": "fromURL" if format == "HTML" else "fromFile",
             "loadFormat": format,
             "loadLocation": "",
@@ -270,18 +270,20 @@ class IngestBase(object):
             "publisher": input_dict.get("publisher", ""),
             "issueNum": input_dict.get("issue", ""),
             "volumeNum": input_dict.get("volume", ""),
-            "pubYear": versionOfRecordDate
-            if versionOfRecordDate
-            else (
-                input_dict["pubdate_print"][0:4]
-                if "pubdate_print" in input_dict
+            "pubYear": (
+                versionOfRecordDate
+                if versionOfRecordDate
                 else (
-                    input_dict["pubdate_electronic"][0:4]
-                    if "pubdate_electronic" in input_dict
+                    input_dict["pubdate_print"][0:4]
+                    if "pubdate_print" in input_dict
                     else (
-                        input_dict.get("pubdate_other", {})[0].get("date", "")[0:4]
-                        if "pubdate_other" in input_dict
-                        else ""
+                        input_dict["pubdate_electronic"][0:4]
+                        if "pubdate_electronic" in input_dict
+                        else (
+                            input_dict.get("pubdate_other", {})[0].get("date", "")[0:4]
+                            if "pubdate_other" in input_dict
+                            else ""
+                        )
                     )
                 )
             ),
@@ -475,7 +477,7 @@ class IngestBase(object):
         output["openAccess"] = {
             "open": input_dict.get("openAccess", {}).get("open", False),
             "license": input_dict.get("openAccess", {}).get("license", ""),
-            "licenseURL": input_dict.get("openAccess", {}).get("licenseURL", "")
+            "licenseURL": input_dict.get("openAccess", {}).get("licenseURL", ""),
             # "preprint": "XXX",
             # "startDate": "XXX",
             # "endDate": "XXX",
@@ -502,6 +504,14 @@ class BaseBeautifulSoupParser(IngestBase):
     fix_ampersand_1 = re.compile(r"(__amp__)(.*?)(;)")
     fix_ampersand_2 = re.compile(r"(&amp;)(.*?)(;)")
     re_ampersands = [fix_ampersand_1, fix_ampersand_2]
+
+    # HTML5 raw-text/RCDATA elements: libxml2>=2.14 (lxml>=6) does not parse child tags
+    # inside these, so they are temporarily renamed before parsing in _detag
+    rawtext_prefix = "ingest-rawtext-"
+    re_rawtext_tags = re.compile(
+        r"<(/?)(title|textarea|style|script|xmp|iframe|noembed|noframes|noscript|plaintext)(?=[\s/>])",
+        re.IGNORECASE,
+    )
 
     HTML_TAGS_MATH = [
         "inline-formula",
@@ -588,7 +598,17 @@ class BaseBeautifulSoupParser(IngestBase):
         """
         # note that parser=lxml is recommended here - if the more stringent lxml-xml is used,
         # the output is slightly different and the code will need to be modified
-        newr = self.bsstrtodict(str(r), "lxml")
+        r_str = self.re_rawtext_tags.sub(r"<\1%s\2" % self.rawtext_prefix, str(r))
+        newr = self.bsstrtodict(r_str, "lxml")
+        for e in newr.find_all(re.compile("^" + self.rawtext_prefix)):
+            e.name = e.name[len(self.rawtext_prefix) :]
+
+        # libxml2>=2.14 parses processing instructions (e.g. <?index ...?>) as comments
+        # ("<!--?index ...?-->"); convert them back unless the input had such comments
+        if "<!--?" not in r_str:
+            for c in newr.find_all(string=lambda s: isinstance(s, bs4.Comment)):
+                if c.startswith("?"):
+                    c.replace_with(bs4.ProcessingInstruction(c[1:]))
 
         # list of all tags in the object
         if newr.find_all():
